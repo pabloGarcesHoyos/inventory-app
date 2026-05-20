@@ -9,6 +9,7 @@ from src.api.routes import (
     inventory_router,
     movements_router,
     products_router,
+    reports_router,
     users_router,
 )
 from src.core.config import settings
@@ -33,6 +34,7 @@ app.include_router(users_router)
 app.include_router(products_router)
 app.include_router(movements_router)
 app.include_router(inventory_router)
+app.include_router(reports_router)
 
 
 @app.get("/")

@@ -49,12 +49,14 @@ inventory-app/
 |   |   |-- inventory.py
 |   |   |-- movement.py
 |   |   |-- product.py
+|   |   |-- report.py
 |   |   `-- user.py
 |   |-- services/
 |   |   |-- alert_service.py
 |   |   |-- inventory_service.py
 |   |   |-- movement_service.py
 |   |   |-- product_service.py
+|   |   |-- report_service.py
 |   |   `-- user_service.py
 |   |-- repositories/
 |   |   |-- alert_repository.py
@@ -68,6 +70,7 @@ inventory-app/
 |   |       |-- inventory.py
 |   |       |-- movements.py
 |   |       |-- products.py
+|   |       |-- reports.py
 |   |       `-- users.py
 |   |-- security/
 |   |   |-- dependencies.py
@@ -87,6 +90,7 @@ inventory-app/
 |       |-- test_inventory.py
 |       |-- test_movements.py
 |       |-- test_products.py
+|       |-- test_reports.py
 |       |-- test_rbac.py
 |       `-- test_users.py
 |-- .env.example
@@ -386,6 +390,65 @@ Pruebas implementadas en Fase 4:
 
 También se agregaron pruebas de token requerido, cantidad inválida, producto inexistente y no modificación de stock cuando una salida falla.
 
+## Fase 5 — Reportes de inventario
+
+Esta fase implementa el reporte general de inventario en formato JSON. No incluye PDF, Excel, CSV, frontend ni reportes financieros.
+
+Endpoint creado:
+
+- `GET /api/reportes/inventario`: genera reporte JSON de inventario, requiere usuario autenticado.
+
+Roles permitidos:
+
+- `ADMINISTRADOR`
+- `OPERADOR`
+- `AUDITOR`
+
+Reglas de negocio:
+
+- El reporte se genera con el stock actual del sistema.
+- `fecha_corte` es opcional y se incluye como dato informativo.
+- `total_productos` corresponde al número de productos registrados.
+- `total_en_alerta` cuenta productos con `stock_actual < stock_minimo`.
+- Cada producto reporta estado `OK` o `ALERTA`.
+- La generación del reporte no modifica stock ni movimientos.
+
+Consultar reporte:
+
+```http
+GET /api/reportes/inventario?fecha_corte=2026-04-25
+Authorization: Bearer <token>
+```
+
+Ejemplo de respuesta:
+
+```json
+{
+  "formato": "JSON",
+  "fecha_corte": "2026-04-25",
+  "total_productos": 5,
+  "total_en_alerta": 2,
+  "productos": [
+    {
+      "id": 1,
+      "nombre": "Resma de Papel",
+      "sku": "PAP-001",
+      "categoria": "INSUMOS",
+      "stock_actual": 60,
+      "stock_minimo": 10,
+      "unidad": "unidades",
+      "estado": "OK"
+    }
+  ]
+}
+```
+
+Prueba implementada en Fase 5:
+
+- PU-012: generación de reporte de inventario en formato JSON.
+
+También se agregaron pruebas para token requerido, reporte sin productos, acceso de `AUDITOR` y verificación de que el reporte no modifica stock ni movimientos.
+
 ## Pruebas
 
 Ejecutar pruebas:
@@ -470,8 +533,16 @@ Fase 4 completada:
 - Inmutabilidad de movimientos validada por servicio y HTTP.
 - Pruebas PU-006, PU-007, PU-008, PU-009, PU-010, PU-011 y PU-015 implementadas.
 
+Fase 5 completada:
+
+- Reporte JSON de inventario disponible.
+- Consulta protegida con JWT para `ADMINISTRADOR`, `OPERADOR` y `AUDITOR`.
+- Totales de productos y productos en alerta calculados.
+- Estado `OK` o `ALERTA` calculado por producto.
+- Prueba PU-012 implementada.
+- Las 18 pruebas oficiales del plan quedan cubiertas.
+
 ## Próximas fases
 
-- Fase 5: reportes.
 - Fase 6: implementación completa de las 18 pruebas unitarias.
 - Fase 7: Docker build completo y despliegue.
