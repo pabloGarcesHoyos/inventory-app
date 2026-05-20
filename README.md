@@ -39,22 +39,34 @@ inventory-app/
 |   |   |-- config.py
 |   |   `-- database.py
 |   |-- models/
+|   |   |-- alert.py
+|   |   |-- movement.py
 |   |   |-- product.py
 |   |   `-- user.py
 |   |-- schemas/
+|   |   |-- alert.py
 |   |   |-- auth.py
+|   |   |-- inventory.py
+|   |   |-- movement.py
 |   |   |-- product.py
 |   |   `-- user.py
 |   |-- services/
+|   |   |-- alert_service.py
+|   |   |-- inventory_service.py
+|   |   |-- movement_service.py
 |   |   |-- product_service.py
 |   |   `-- user_service.py
 |   |-- repositories/
+|   |   |-- alert_repository.py
+|   |   |-- movement_repository.py
 |   |   |-- product_repository.py
 |   |   `-- user_repository.py
 |   |-- api/
 |   |   `-- routes/
 |   |       |-- auth.py
 |   |       |-- health.py
+|   |       |-- inventory.py
+|   |       |-- movements.py
 |   |       |-- products.py
 |   |       `-- users.py
 |   |-- security/
@@ -62,13 +74,18 @@ inventory-app/
 |   |   |-- jwt.py
 |   |   `-- password.py
 |   `-- exceptions/
+|       |-- movement_exceptions.py
 |       |-- product_exceptions.py
 |       `-- user_exceptions.py
 |-- tests/
 |   `-- unit/
 |       |-- conftest.py
+|       |-- test_alerts.py
 |       |-- test_auth.py
 |       |-- test_health.py
+|       |-- test_history_audit.py
+|       |-- test_inventory.py
+|       |-- test_movements.py
 |       |-- test_products.py
 |       |-- test_rbac.py
 |       `-- test_users.py
@@ -277,6 +294,98 @@ Pruebas implementadas en Fase 3:
 
 También se agregaron pruebas de protección para listado con token, consulta por ID, rechazo de acceso sin token, rechazo de actualización por `OPERADOR` y rechazo de modificación de `sku`.
 
+## Fase 4 — Movimientos de inventario, existencias, historial y alertas
+
+Esta fase implementa entradas y salidas de inventario, consulta de existencias en tiempo real, historial de movimientos por producto, alertas de stock mínimo e inmutabilidad de movimientos. No incluye reporte JSON general de inventario.
+
+Endpoints creados:
+
+- `POST /api/movimientos/entrada`: registra entrada, requiere `ADMINISTRADOR` u `OPERADOR`.
+- `POST /api/movimientos/salida`: registra salida, requiere `ADMINISTRADOR` u `OPERADOR`.
+- `GET /api/inventario/{producto_id}`: consulta existencias, requiere usuario autenticado.
+- `GET /api/productos/{producto_id}/historial`: consulta historial, requiere usuario autenticado.
+- `GET /api/productos/{producto_id}/alertas`: consulta alertas, requiere usuario autenticado.
+- `PUT /api/movimientos/{movimiento_id}`: responde `403`, los movimientos no se modifican.
+- `DELETE /api/movimientos/{movimiento_id}`: responde `403`, los movimientos no se eliminan.
+
+Reglas de negocio:
+
+- `ENTRADA` aumenta `stock_actual`.
+- `SALIDA` disminuye `stock_actual`.
+- La cantidad debe ser mayor que cero.
+- Una salida con stock insuficiente se rechaza y no modifica el producto.
+- Cada movimiento guarda `stock_anterior`, `stock_nuevo`, `product_id`, `user_id` y `fecha`.
+- Los movimientos son registros de auditoría inmutables.
+- Si una salida deja el stock por debajo del mínimo, se genera alerta `STOCK_MINIMO`.
+- El historial se retorna ordenado cronológicamente de forma ascendente.
+
+Registrar entrada:
+
+```http
+POST /api/movimientos/entrada
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+```json
+{
+  "producto_id": 1,
+  "cantidad": 30,
+  "proveedor": "Papelería Nacional",
+  "documento": "FAC-2026-001"
+}
+```
+
+Registrar salida:
+
+```http
+POST /api/movimientos/salida
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+```json
+{
+  "producto_id": 1,
+  "cantidad": 20,
+  "destino": "Departamento de Sistemas",
+  "motivo": "Consumo interno"
+}
+```
+
+Consultar inventario:
+
+```http
+GET /api/inventario/1
+Authorization: Bearer <token>
+```
+
+Consultar historial:
+
+```http
+GET /api/productos/1/historial
+Authorization: Bearer <token>
+```
+
+Consultar alertas:
+
+```http
+GET /api/productos/1/alertas
+Authorization: Bearer <token>
+```
+
+Pruebas implementadas en Fase 4:
+
+- PU-006: registro de entrada de inventario.
+- PU-007: registro de salida de inventario.
+- PU-008: rechazo de salida por stock insuficiente.
+- PU-009: consulta de existencias en tiempo real.
+- PU-010: activación de alerta por stock mínimo.
+- PU-011: generación de historial de movimientos por producto.
+- PU-015: inmutabilidad del registro de auditoría.
+
+También se agregaron pruebas de token requerido, cantidad inválida, producto inexistente y no modificación de stock cuando una salida falla.
+
 ## Pruebas
 
 Ejecutar pruebas:
@@ -351,9 +460,18 @@ Fase 3 completada:
 - Validación de SKU único y campos obligatorios.
 - Pruebas PU-004, PU-005, PU-016 y PU-018 implementadas.
 
+Fase 4 completada:
+
+- Modelo de movimientos y alertas creado.
+- Entradas y salidas de inventario disponibles.
+- Consulta de existencias en tiempo real disponible.
+- Historial de movimientos por producto disponible.
+- Alertas de stock mínimo disponibles.
+- Inmutabilidad de movimientos validada por servicio y HTTP.
+- Pruebas PU-006, PU-007, PU-008, PU-009, PU-010, PU-011 y PU-015 implementadas.
+
 ## Próximas fases
 
-- Fase 4: movimientos, inventario, historial y alertas.
 - Fase 5: reportes.
 - Fase 6: implementación completa de las 18 pruebas unitarias.
 - Fase 7: Docker build completo y despliegue.

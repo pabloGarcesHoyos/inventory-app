@@ -3,7 +3,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from src.api.routes import auth_router, health_router, products_router, users_router
+from src.api.routes import (
+    auth_router,
+    health_router,
+    inventory_router,
+    movements_router,
+    products_router,
+    users_router,
+)
 from src.core.config import settings
 from src.core.database import init_db
 
@@ -24,6 +31,8 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(products_router)
+app.include_router(movements_router)
+app.include_router(inventory_router)
 
 
 @app.get("/")
