@@ -1,4 +1,4 @@
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -64,6 +64,22 @@ def require_role(required_role: str) -> Callable[[User], User]:
         current_user: User = Depends(get_current_user),
     ) -> User:
         if current_user.rol != required_role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tiene permisos para ejecutar esta operacion",
+            )
+        return current_user
+
+    return role_dependency
+
+
+def require_any_role(required_roles: Iterable[str]) -> Callable[[User], User]:
+    allowed_roles = set(required_roles)
+
+    def role_dependency(
+        current_user: User = Depends(get_current_user),
+    ) -> User:
+        if current_user.rol not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No tiene permisos para ejecutar esta operacion",

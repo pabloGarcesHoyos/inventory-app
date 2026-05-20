@@ -39,30 +39,37 @@ inventory-app/
 |   |   |-- config.py
 |   |   `-- database.py
 |   |-- models/
+|   |   |-- product.py
 |   |   `-- user.py
 |   |-- schemas/
 |   |   |-- auth.py
+|   |   |-- product.py
 |   |   `-- user.py
 |   |-- services/
+|   |   |-- product_service.py
 |   |   `-- user_service.py
 |   |-- repositories/
+|   |   |-- product_repository.py
 |   |   `-- user_repository.py
 |   |-- api/
 |   |   `-- routes/
 |   |       |-- auth.py
 |   |       |-- health.py
+|   |       |-- products.py
 |   |       `-- users.py
 |   |-- security/
 |   |   |-- dependencies.py
 |   |   |-- jwt.py
 |   |   `-- password.py
 |   `-- exceptions/
+|       |-- product_exceptions.py
 |       `-- user_exceptions.py
 |-- tests/
 |   `-- unit/
 |       |-- conftest.py
 |       |-- test_auth.py
 |       |-- test_health.py
+|       |-- test_products.py
 |       |-- test_rbac.py
 |       `-- test_users.py
 |-- .env.example
@@ -204,6 +211,72 @@ Pruebas implementadas en Fase 2:
 - PU-014: control de acceso basado en roles RBAC.
 - PU-017: eliminación lógica de usuario.
 
+## Fase 3 — Gestión de productos
+
+Esta fase implementa el registro, consulta, listado y actualización de datos generales de productos. No implementa movimientos de inventario, entradas, salidas, historial, alertas ni reportes.
+
+Endpoints creados:
+
+- `POST /api/productos`: crea producto, requiere `ADMINISTRADOR` u `OPERADOR`.
+- `GET /api/productos`: lista productos, requiere usuario autenticado.
+- `GET /api/productos/{producto_id}`: consulta producto por ID, requiere usuario autenticado.
+- `PUT /api/productos/{producto_id}`: actualiza datos generales, requiere `ADMINISTRADOR`.
+
+Reglas de negocio:
+
+- `sku` es único y se normaliza a mayúsculas.
+- `sku` no se puede modificar después de crear el producto.
+- `stock_inicial` se guarda como `stock_actual` al crear el producto.
+- `stock_actual` no se altera al actualizar datos generales.
+- `stock_inicial` y `stock_minimo` no pueden ser negativos.
+- `nombre`, `sku`, `categoria` y `unidad` no pueden estar vacíos.
+- El estado inicial del producto es `ACTIVO`.
+
+Crear producto:
+
+```http
+POST /api/productos
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+```json
+{
+  "nombre": "Resma de Papel",
+  "sku": "PAP-001",
+  "categoria": "INSUMOS",
+  "stock_inicial": 50,
+  "stock_minimo": 10,
+  "unidad": "unidades"
+}
+```
+
+Actualizar producto:
+
+```http
+PUT /api/productos/1
+Authorization: Bearer <token_admin>
+Content-Type: application/json
+```
+
+```json
+{
+  "nombre": "Resma de Papel A4",
+  "categoria": "PAPELERÍA",
+  "stock_minimo": 15,
+  "unidad": "unidades"
+}
+```
+
+Pruebas implementadas en Fase 3:
+
+- PU-004: registro de producto con datos válidos.
+- PU-005: rechazo de producto con SKU duplicado.
+- PU-016: modificación de datos de producto existente.
+- PU-018: validación de campos obligatorios en registro de producto.
+
+También se agregaron pruebas de protección para listado con token, consulta por ID, rechazo de acceso sin token, rechazo de actualización por `OPERADOR` y rechazo de modificación de `sku`.
+
 ## Pruebas
 
 Ejecutar pruebas:
@@ -269,9 +342,17 @@ Fase 2 completada:
 - Eliminación lógica de usuarios mediante estado `INACTIVO`.
 - Pruebas PU-001, PU-002, PU-003, PU-013, PU-014 y PU-017 implementadas.
 
+Fase 3 completada:
+
+- Modelo de producto creado.
+- Registro de productos disponible.
+- Listado y consulta de productos protegidos por JWT.
+- Actualización de datos generales restringida a `ADMINISTRADOR`.
+- Validación de SKU único y campos obligatorios.
+- Pruebas PU-004, PU-005, PU-016 y PU-018 implementadas.
+
 ## Próximas fases
 
-- Fase 3: productos.
 - Fase 4: movimientos, inventario, historial y alertas.
 - Fase 5: reportes.
 - Fase 6: implementación completa de las 18 pruebas unitarias.
